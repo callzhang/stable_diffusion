@@ -4,7 +4,7 @@ from diffusers import StableDiffusionPipeline
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 import uvicorn
-from pipelines import StableDiffusionImg2ImgPipeline, preprocess
+from pipelines import StableDiffusionImg2ImgPipeline, preprocess_image
 from rich import print
 from rich.traceback import install
 from rich.logging import RichHandler
@@ -67,8 +67,11 @@ def inference(prompt:str, steps:int=50, scale:float=8):
 @app.get('/img2img')
 @autocast('cuda')
 def img2imge_generation(prompt:str, image=File(default=None), steps:int=50, scale:float=8, strength:float=0.75):
+    '''
+    @strength: strength is a value between 0.0 and 1.0, that controls the amount of noise that is added to the input image. Values that approach 1.0 allow for lots of variations but will also produce images that are not semantically consistent with the input.
+    '''
     img0 = Image.open(image.file).convert("RGB").resize((768, 512))
-    img0 = preprocess(img0)
+    img0 = preprocess_image(img0)
     # if model_type != 'img2img':
     #     load_model('img2img')
     images = pipe.img2img(prompt=prompt, init_image=img0, strength=strength, guidance_scale=scale, num_inference_steps=steps)["sample"]
@@ -76,6 +79,23 @@ def img2imge_generation(prompt:str, image=File(default=None), steps:int=50, scal
     images[0].save(fname)
     return FileResponse(fname)
 
+@app.get('/inpaint')
+@autocast('cuda')
+def inpaint(prompt, image=File(default=None), mask_image=None, strength=0.75, scale=7.5, generator=None, num_samples=1, n_iter=1):
+    all_images = []
+    init_image = Image.open(image.file).convert("RGB")
+    for _ in range(n_iter):
+        with autocast("cuda"):
+            images = pipe(
+                prompt=[prompt] * num_samples,
+                init_image=init_image,
+                mask_image=mask_image,
+                strength=strength,
+                guidance_scale=scale,
+                generator=generator,
+            )["sample"]
+        all_images.extend(images)
+    return all_images# needs some extra work
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=9021)
