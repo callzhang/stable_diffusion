@@ -14,39 +14,40 @@ from diffusers import (
     DiffusionPipeline,
     PNDMScheduler, # default for stable diffusion
     UNet2DConditionModel,
+    StableDiffusionPipeline
 )
 from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
 from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 
 
-class StableDiffusionImg2ImgPipeline(DiffusionPipeline):
-    def __init__(
-        self,
-        vae: AutoencoderKL,
-        text_encoder: CLIPTextModel,
-        tokenizer: CLIPTokenizer,
-        unet: UNet2DConditionModel,
-        scheduler: Union[DDIMScheduler, PNDMScheduler, None],
-        safety_checker: StableDiffusionSafetyChecker,
-        feature_extractor: CLIPFeatureExtractor,
-    ):
-        super().__init__()
-        if not scheduler:
-            # scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", clip_sample=False, set_alpha_to_one=False)
-            scheduler = PNDMScheduler()
-        scheduler = scheduler.set_format("pt")
-        self.register_modules(
-            vae=vae,
-            text_encoder=text_encoder,
-            tokenizer=tokenizer,
-            unet=unet,
-            scheduler=scheduler,
-            safety_checker=safety_checker,
-            feature_extractor=feature_extractor,
-        )
+class StableDiffusionImg2ImgPipeline(StableDiffusionPipeline):
+    # def __init__(
+    #     self,
+    #     vae: AutoencoderKL,
+    #     text_encoder: CLIPTextModel,
+    #     tokenizer: CLIPTokenizer,
+    #     unet: UNet2DConditionModel,
+    #     scheduler: Union[DDIMScheduler, PNDMScheduler, None],
+    #     safety_checker: StableDiffusionSafetyChecker,
+    #     feature_extractor: CLIPFeatureExtractor,
+    # ):
+    #     super().__init__()
+    #     if not scheduler:
+    #         # scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", clip_sample=False, set_alpha_to_one=False)
+    #         scheduler = PNDMScheduler()
+    #     scheduler = scheduler.set_format("pt")
+    #     self.register_modules(
+    #         vae=vae,
+    #         text_encoder=text_encoder,
+    #         tokenizer=tokenizer,
+    #         unet=unet,
+    #         scheduler=scheduler,
+    #         safety_checker=safety_checker,
+    #         feature_extractor=feature_extractor,
+    #     )
 
     @torch.no_grad()
-    def __call__(
+    def img2img(
         self,
         prompt: Union[str, List[str]],
         init_image: torch.FloatTensor,
@@ -167,8 +168,8 @@ class StableDiffusionImg2ImgPipeline(DiffusionPipeline):
 
 
     @torch.no_grad()
-    def generate_image(self, *args, **kwargs):
-        return super().__call__(*args, **kwargs)# not working
+    def text2img(self, *args, **kwargs):
+        return super().__call__(*args, **kwargs)
 
 
 def preprocess(image):

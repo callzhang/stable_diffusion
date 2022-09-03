@@ -26,17 +26,17 @@ app = FastAPI()
 def load_model(type='img_gen'):
     global pipe, model_type
     # make sure you're logged in with `huggingface-cli login`
-    if type == 'img_gen':
-        pipe = StableDiffusionPipeline.from_pretrained(
-            MODEL_PATH, revision="fp16", torch_dtype=torch.float16, use_auth_token=True)
-    elif type=='img2img':
-        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-            MODEL_PATH,
-            # scheduler=scheduler,
-            revision="fp16", 
-            torch_dtype=torch.float16,
-            use_auth_token=True
-        )
+    # if type == 'img_gen':
+    #     pipe = StableDiffusionPipeline.from_pretrained(
+    #         MODEL_PATH, revision="fp16", torch_dtype=torch.float16, use_auth_token=True)
+    # elif type=='img2img':
+    pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+        MODEL_PATH,
+        # scheduler=scheduler,
+        revision="fp16", 
+        torch_dtype=torch.float16,
+        use_auth_token=True
+    )
     model_type = type
     pipe.to(DEVICE)
     print(f'Model loaded: "{type}"')
@@ -50,8 +50,8 @@ def inference(prompt:str, steps:int=50, scale:float=8):
     @scale: The other parameter in the pipeline call is `guidance_scale`. It is a way to increase the adherence to the conditional signal which in this case is text as well as overall sample quality. In simple terms classifier free guidance forces the generation to better match with the prompt. Numbers like `7` or `8.5` give good results, if you use a very large number the images might look good, but will be less diverse. 
     '''
     print(f'Generating image with prompt: "{prompt}", steps: {steps}, scale: {scale}')
-    if model_type != 'img_gen':
-        load_model('img_gen')
+    # if model_type != 'img_gen':
+    #     load_model('img_gen')
     images = pipe(
         prompt,
         num_inference_steps=steps,
@@ -69,9 +69,9 @@ def inference(prompt:str, steps:int=50, scale:float=8):
 def img2imge_generation(prompt:str, image=File(default=None), steps:int=50, scale:float=8, strength:float=0.75):
     img0 = Image.open(image.file).convert("RGB").resize((768, 512))
     img0 = preprocess(img0)
-    if model_type != 'img2img':
-        load_model('img2img')
-    images = pipe(prompt=prompt, init_image=img0, strength=strength, guidance_scale=scale, num_inference_steps=steps)["sample"]
+    # if model_type != 'img2img':
+    #     load_model('img2img')
+    images = pipe.img2img(prompt=prompt, init_image=img0, strength=strength, guidance_scale=scale, num_inference_steps=steps)["sample"]
     fname = f'temp/{image.filename}'
     images[0].save(fname)
     return FileResponse(fname)
